@@ -36,13 +36,20 @@
 ### Структура проекта
 
 ```shell
-avl-dict/
 ├── README.md
 ├── src/
 │   └── avl_dict.clj
 ├── test/
-│       ├── avl_dict_test.clj
+│       ├── units_test.clj
 │       └── property_test.clj
+│
+├── .github/workflows/
+│   └── clojure.yml
+│
+├── .gitingore 
+├── test.edn
+└── deps.edn
+
 
 ```
 
