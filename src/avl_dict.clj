@@ -128,7 +128,6 @@
           acc (fold-left f acc (:right node))]
       acc)))
 
-
 ;; Fold the AVL tree from the right
 (defn fold-right [f acc node]
   (if node
@@ -211,8 +210,6 @@
         (and (<= (Math/abs (- lh rh)) 1)
              (avl-balanced? (:left avl))
              (avl-balanced? (:right avl))))))
-
-
 
 (comment
   (def gg (empty-avl))

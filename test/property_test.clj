@@ -86,7 +86,6 @@
                   (is (= sum-left expected-sum))
                   (is (= sum-right expected-sum)))))
 
-
 (defspec concat-2-avls-all-elements-exist iteration_num
   ;; Verifies that concatenating two AVL trees results in a balanced AVL tree containing all keys from both input trees.
   (prop/for-all [tuples1 (gen/vector (gen/not-empty gen-pair) samples_count)

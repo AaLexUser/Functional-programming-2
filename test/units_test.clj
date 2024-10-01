@@ -65,7 +65,6 @@
     (let [empty-avl (empty-avl)]
       (is (= (keys-avl empty-avl) '()) "Should return an empty list for an empty AVL tree"))))
 
-
 (deftest test-map-avl
   (testing "Mapping over AVL tree"
     (let [tree (-> (empty-avl)
@@ -98,8 +97,6 @@
       (is (= 6 sum))
       (is (= true (avl-balanced? tree))))))
 
-
-
 (deftest test-fold-right-string
   (testing "Folding right over AVL tree"
     (let [tree (-> (empty-avl)
@@ -121,7 +118,6 @@
                               (str acc value)) "" tree)]
       (is (= "abc" result))
       (is (= true (avl-balanced? tree))))))
-
 
 (deftest test-concat-avl
   (testing "Concatenating two AVL trees"
@@ -164,6 +160,5 @@
       (is (= non-empty-tree (concat-avl empty-tree non-empty-tree)))
       (is (= non-empty-tree (concat-avl non-empty-tree empty-tree)))
       (is (= non-empty-tree (concat-avl non-empty-tree non-empty-tree))))))
-
 
 (run-tests)
