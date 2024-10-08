@@ -338,6 +338,18 @@
 
 ; Unit Tests
 
+(ns units-test
+  (:require [clojure.test :refer [deftest testing is run-tests]]
+            [avl-dict :refer [avl-balanced? balance-factor
+                              concat-avl delete
+                              empty-avl filter-values
+                              fold-left fold-right
+                              get-value height
+                              insert keys-avl
+                              map-avl to-list to-tree]]))
+
+; Unit Tests
+
 (deftest test-empty-avl
   (testing "Empty AVL tree"
     (is (nil? (empty-avl)))
@@ -367,8 +379,6 @@
       (is (= "2019-12-31" (get-value tree (java.util.Date. 119 11 31))))
       (is (= "2021-07-04" (get-value tree (java.util.Date. 121 6 4))))
       (is (= true (avl-balanced? tree))))))
-
-
 
 (deftest test-delete
   (testing "Deleting nodes"
@@ -414,18 +424,21 @@
       (is (= true (avl-balanced? tree))))))
 
 (deftest test-to-list-date
-  (testing "Converting tree to sorted list"
+  (testing "Converting tree with Date keys and values to sorted list"
     (let [tree (-> (empty-avl)
-                   (insert (java.util.Date. 120 0 1) "2020-01-01")
-                   (insert (java.util.Date. 120 5 15) "2020-06-15")
-                   (insert (java.util.Date. 119 11 31) "2019-12-31")
-                   (insert (java.util.Date. 121 6 4) "2021-07-04"))]
-      (is (= '(#inst "2019-12-30T21:00:00.000-00:00" "2019-12-31"
-               #inst "2019-12-31T21:00:00.000-00:00" "2020-01-01"
-               #inst "2020-06-14T21:00:00.000-00:00" "2020-06-15"
-               #inst "2021-07-03T21:00:00.000-00:00" "2021-07-04")
-             (to-list tree))))))
-
+                   (insert (java.util.Date. 119 11 31) (java.util.Date. 119 11 31))
+                   (insert (java.util.Date. 120 0 1) (java.util.Date. 120 0 1))
+                   (insert (java.util.Date. 120 5 15) (java.util.Date. 120 5 15))
+                   (insert (java.util.Date. 121 6 4) (java.util.Date. 121 6 4)))
+          expected [(java.util.Date. 119 11 31) (java.util.Date. 119 11 31)
+                    (java.util.Date. 120 0 1) (java.util.Date. 120 0 1)
+                    (java.util.Date. 120 5 15) (java.util.Date. 120 5 15)
+                    (java.util.Date. 121 6 4) (java.util.Date. 121 6 4)]
+          result (to-list tree)]
+      (is (= (count expected) (count result)) "List should have correct number of elements")
+      (is (= expected result) "List should be sorted correctly")
+      (is (every? #(instance? java.util.Date %) result) "All elements should be Date instances")
+      (is (apply <= (map #(.getTime %) (take-nth 2 result))) "Keys should be in ascending order"))))
 
 (deftest test-keys-avl
   (testing "keys-avl function"
@@ -472,7 +485,6 @@
       (is (= 8 (get-value mapped-tree (java.util.Date. 121 6 4))))
       (is (= true (avl-balanced? mapped-tree))))))
 
-
 (deftest test-fold-right-sum
   (testing "Folding right over AVL tree"
     (let [tree (-> (empty-avl)
@@ -484,15 +496,17 @@
       (is (= true (avl-balanced? tree))))))
 
 (deftest test-fold-right-date
-  (testing "Folding right over AVL tree"
+  (testing "Folding right over AVL tree with dates"
     (let [tree (-> (empty-avl)
                    (insert (java.util.Date. 120 0 1) (java.util.Date. 120 0 1))
                    (insert (java.util.Date. 120 5 15) (java.util.Date. 120 5 15))
                    (insert (java.util.Date. 119 11 31) (java.util.Date. 119 11 31))
                    (insert (java.util.Date. 121 6 4) (java.util.Date. 121 6 4)))
-          sum (fold-right (fn [_ _ v] (.toString v)) "" tree)]
-      (is (= "Tue Dec 31 00:00:00 MSK 2019" sum))
-      (is (= true (avl-balanced? tree))))))
+          latest-date (fold-right (fn [acc _ v] (if (.after v acc) v acc)) 
+                                  (java.util.Date. 0 0 1) 
+                                  tree)]
+      (is (= (java.util.Date. 121 6 4) latest-date))
+      (is (true? (avl-balanced? tree))))))
 
 (deftest test-fold-left-sum
   (testing "Folding left over AVL tree"
@@ -572,7 +586,6 @@
               (java.util.Date. 120 5 15)
               (java.util.Date. 121 6 4)]
              (keys-avl combined))))))
-
 
 (deftest test-filter-values
   (testing "Filtering AVL tree"
