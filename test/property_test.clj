@@ -30,18 +30,15 @@
             (gen/choose (- (System/currentTimeMillis) (* 1000 60))
                         (System/currentTimeMillis))))
 
-
 (def gen-int-pair
   (gen/tuple gen-key gen/small-integer))
 
 (def gen-date-pair
   (gen/not-empty (gen/tuple gen-date gen-date)))
 
-(def gen-poly-pair (gen/one-of [
-             (gen/vector (gen/not-empty gen-pair) samples_count)
-             (gen/vector (gen/not-empty gen-int-pair) samples_count)
-             (gen/vector (gen/not-empty gen-date-pair) samples_count)
-]))
+(def gen-poly-pair (gen/one-of [(gen/vector (gen/not-empty gen-pair) samples_count)
+                                (gen/vector (gen/not-empty gen-int-pair) samples_count)
+                                (gen/vector (gen/not-empty gen-date-pair) samples_count)]))
 
 ;; Test to verify that a randomly selected key from a set of inserted key-value pairs exists within the AVL tree
 ;; and that the AVL tree remains balanced after insertions.
@@ -65,16 +62,15 @@
   ;; Verifies that an inserted key-value pair can be retrieved and the AVL tree remains balanced.
   (prop/for-all [tuples (gen/vector-distinct (gen/tuple gen-key gen-value))
                  key gen-key
-                 value gen-value
-                 ]
+                 value gen-value]
                 (try
                   (let [avl (to-tree tuples)
                         new-avl (insert avl key value)]
                     (is (avl-contains? new-avl key) "AVL tree should contain the inserted key.")
-                  (is (avl-balanced? new-avl) "AVL tree should remain balanced after insertion.")
-                  (is (= value (get-value new-avl key)) "Retrieved value should match the inserted value."))
+                    (is (avl-balanced? new-avl) "AVL tree should remain balanced after insertion.")
+                    (is (= value (get-value new-avl key)) "Retrieved value should match the inserted value."))
                   (catch Exception e
-                    (println "Error occurred. Visualizing tree:") 
+                    (println "Error occurred. Visualizing tree:")
                     (println "Error message:" (.getMessage e))
                     (println "Tuples:" tuples)
                     (println "Inserted key:" key)
@@ -93,7 +89,7 @@
                     (is (avl-balanced? new-avl) "AVL tree should remain balanced after insertion.")
                     (is (= value (get-value new-avl key)) "Retrieved value should match the inserted value."))
                   (catch Exception e
-                    (println "Error occurred. Visualizing tree:") 
+                    (println "Error occurred. Visualizing tree:")
                     (println "Error message:" (.getMessage e))
                     (println "Inserted key:" key)
                     (println "Inserted value:" value)
@@ -114,7 +110,7 @@
                                                  (gen/set (gen/tuple gen-key gen-value) {:num-elements samples_count}))
                                   values (gen/vector-distinct gen-value {:num-elements samples_count :max-tries 40})]
                           (map (fn [k v] [k v]) keys values))]
-                (let [tree (to-tree tuples) 
+                (let [tree (to-tree tuples)
                       expected-sum (->> tuples
                                         (filter (fn [[k _]] (number? k)))
                                         (map first)

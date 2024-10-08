@@ -40,8 +40,6 @@
       (is (= "2021-07-04" (get-value tree (java.util.Date. 121 6 4))))
       (is (= true (avl-balanced? tree))))))
 
-
-
 (deftest test-delete
   (testing "Deleting nodes"
     (let [tree (-> (empty-avl)
@@ -93,11 +91,10 @@
                    (insert (java.util.Date. 119 11 31) "2019-12-31")
                    (insert (java.util.Date. 121 6 4) "2021-07-04"))]
       (is (= '(#inst "2019-12-30T21:00:00.000-00:00" "2019-12-31"
-               #inst "2019-12-31T21:00:00.000-00:00" "2020-01-01"
-               #inst "2020-06-14T21:00:00.000-00:00" "2020-06-15"
-               #inst "2021-07-03T21:00:00.000-00:00" "2021-07-04")
+                                                     #inst "2019-12-31T21:00:00.000-00:00" "2020-01-01"
+                                                     #inst "2020-06-14T21:00:00.000-00:00" "2020-06-15"
+                                                     #inst "2021-07-03T21:00:00.000-00:00" "2021-07-04")
              (to-list tree))))))
-
 
 (deftest test-keys-avl
   (testing "keys-avl function"
@@ -143,7 +140,6 @@
       (is (= 6 (get-value mapped-tree (java.util.Date. 119 11 31))))
       (is (= 8 (get-value mapped-tree (java.util.Date. 121 6 4))))
       (is (= true (avl-balanced? mapped-tree))))))
-
 
 (deftest test-fold-right-sum
   (testing "Folding right over AVL tree"
@@ -244,7 +240,6 @@
               (java.util.Date. 120 5 15)
               (java.util.Date. 121 6 4)]
              (keys-avl combined))))))
-
 
 (deftest test-filter-values
   (testing "Filtering AVL tree"
@@ -349,7 +344,5 @@
               (java.util.Date. 121 6 4)]
              (keys-avl tree-after-delete)))
       (is (every? #(instance? java.util.Date %) (keys-avl tree-after-delete))))))
-
-
 
 (run-tests)
