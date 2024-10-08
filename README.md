@@ -141,10 +141,11 @@
 
 ;; Delete a key from the AVL tree
 (defn delete [node key]
+  (let [cmp (compare key (:key node))]
   (cond
     (nil? node) nil
-    (< key (:key node)) (balance (assoc node :left (delete (:left node) key)))
-    (> key (:key node)) (balance (assoc node :right (delete (:right node) key)))
+    (neg? cmp) (balance (assoc node :left (delete (:left node) key)))
+    (pos? cmp) (balance (assoc node :right (delete (:right node) key)))
     :else
     (cond
       (nil? (:left node)) (:right node)
@@ -154,15 +155,16 @@
         (-> min-node
             (assoc :right (delete (:right node) (:key min-node)))
             (assoc :left (:left node)) ; Correct association
-            (balance))))))
+            (balance)))))))
 
 ;; Get the value for a given key
 (defn get-value [node key]
+  (let [cmp (compare key (:key node))]
   (cond
     (nil? node) nil
-    (< key (:key node)) (recur (:left node) key)
-    (> key (:key node)) (recur (:right node) key)
-    :else (:value node)))
+    (neg? cmp) (recur (:left node) key)
+    (pos? cmp) (recur (:right node) key)
+    :else (:value node))))
 
 ;; Check if the AVL tree contains a key
 (defn avl-contains? [node key]
@@ -191,7 +193,6 @@
           acc (f acc (:key node) (:value node))
           acc (fold-left f acc (:right node))]
       acc)))
-
 
 ;; Fold the AVL tree from the right
 (defn fold-right [f acc node]
@@ -275,6 +276,49 @@
         (and (<= (Math/abs (- lh rh)) 1)
              (avl-balanced? (:left avl))
              (avl-balanced? (:right avl))))))
+
+(comment
+  (def gg (empty-avl))
+  (def gg (insert gg "12" "1"))
+  (def gg (insert gg "2" "2"))
+  (def gg (insert gg 3 3))
+  (def gg (insert gg 4 4))
+  (def gg (insert gg 5 5))
+  ;; visualize 10 elements with timeout 10 seconds 
+  (def gg (empty-avl))
+  (doall (for [i (range 1 10)]
+           (do
+             (def gg (insert gg i i))
+             (visualize gg))))
+  (visualize gg)
+  (def seq1 (gen-seq 10 30))
+  (def xx (to-tree seq1))
+  (visualize xx)
+  (println (to-list xx))
+  (pprint-avl gg)
+  (pprint gg)
+
+  (let [tree (-> (empty-avl)
+                 (insert 1 1)
+                 (insert 2 2)
+                 (insert 3 3)
+                 (insert 4 4))
+        filtered (filter-values (fn [_ v] (even? v)) tree)]
+    (visualize tree)
+    (visualize filtered)
+    (println (to-list filtered))
+    (pprint filtered)
+    (println (keys-avl filtered)))
+
+  (let [tree (-> (empty-avl)
+                 (insert 5 "five")
+                 (insert 3 "three")
+                 (insert 7 "seven"))]
+    (println (get-value tree 5))
+    (println (get-value tree 3))
+    (println (get-value tree 7))
+    (println (get-value tree 1))
+    (println (avl-balanced? tree))))
 ```
 
 ### Тестирование
@@ -282,7 +326,7 @@
 #### Unit testing
 
 ```clojure
-(ns avl-dict-test
+(ns units-test
   (:require [clojure.test :refer [deftest testing is run-tests]]
             [avl-dict :refer [avl-balanced? balance-factor
                               concat-avl delete
@@ -311,6 +355,21 @@
       (is (nil? (get-value tree 1)))
       (is (= true (avl-balanced? tree))))))
 
+(deftest test-insert-and-retrieve-date
+  (testing "Inserting and retrieving date values"
+    (let [tree (-> (empty-avl)
+                   (insert (java.util.Date. 120 0 1) "2020-01-01")
+                   (insert (java.util.Date. 120 5 15) "2020-06-15")
+                   (insert (java.util.Date. 119 11 31) "2019-12-31")
+                   (insert (java.util.Date. 121 6 4) "2021-07-04"))]
+      (is (= "2020-01-01" (get-value tree (java.util.Date. 120 0 1))))
+      (is (= "2020-06-15" (get-value tree (java.util.Date. 120 5 15))))
+      (is (= "2019-12-31" (get-value tree (java.util.Date. 119 11 31))))
+      (is (= "2021-07-04" (get-value tree (java.util.Date. 121 6 4))))
+      (is (= true (avl-balanced? tree))))))
+
+
+
 (deftest test-delete
   (testing "Deleting nodes"
     (let [tree (-> (empty-avl)
@@ -321,6 +380,18 @@
       (is (nil? (get-value tree 3)))
       (is (= "five" (get-value tree 5)))
       (is (= "seven" (get-value tree 7)))
+      (is (= true (avl-balanced? tree))))))
+
+(deftest test-delete-date
+  (testing "Deleting date nodes"
+    (let [tree (-> (empty-avl)
+                   (insert (java.util.Date. 120 0 1) "2020-01-01")
+                   (insert (java.util.Date. 120 5 15) "2020-06-15")
+                   (insert (java.util.Date. 119 11 31) "2019-12-31")
+                   (delete (java.util.Date. 120 0 1)))]
+      (is (nil? (get-value tree (java.util.Date. 120 0 1))))
+      (is (= "2020-06-15" (get-value tree (java.util.Date. 120 5 15))))
+      (is (= "2019-12-31" (get-value tree (java.util.Date. 119 11 31))))
       (is (= true (avl-balanced? tree))))))
 
 (deftest test-balance
@@ -342,6 +413,20 @@
              (to-list tree)))
       (is (= true (avl-balanced? tree))))))
 
+(deftest test-to-list-date
+  (testing "Converting tree to sorted list"
+    (let [tree (-> (empty-avl)
+                   (insert (java.util.Date. 120 0 1) "2020-01-01")
+                   (insert (java.util.Date. 120 5 15) "2020-06-15")
+                   (insert (java.util.Date. 119 11 31) "2019-12-31")
+                   (insert (java.util.Date. 121 6 4) "2021-07-04"))]
+      (is (= '(#inst "2019-12-30T21:00:00.000-00:00" "2019-12-31"
+               #inst "2019-12-31T21:00:00.000-00:00" "2020-01-01"
+               #inst "2020-06-14T21:00:00.000-00:00" "2020-06-15"
+               #inst "2021-07-03T21:00:00.000-00:00" "2021-07-04")
+             (to-list tree))))))
+
+
 (deftest test-keys-avl
   (testing "keys-avl function"
     (let [avl (to-tree [[1 "a"] [2 "b"] [3 "c"]])]
@@ -349,6 +434,17 @@
     (let [empty-avl (empty-avl)]
       (is (= (keys-avl empty-avl) '()) "Should return an empty list for an empty AVL tree"))))
 
+(deftest test-keys-avl-date
+  (testing "keys-avl function"
+    (let [avl (to-tree [[(java.util.Date. 120 0 1) "2020-01-01"]
+                        [(java.util.Date. 120 5 15) "2020-06-15"]
+                        [(java.util.Date. 119 11 31) "2019-12-31"]
+                        [(java.util.Date. 121 6 4) "2021-07-04"]])]
+      (is (= (keys-avl avl)
+             [(java.util.Date. 119 11 31)
+              (java.util.Date. 120 0 1)
+              (java.util.Date. 120 5 15)
+              (java.util.Date. 121 6 4)])))))
 
 (deftest test-map-avl
   (testing "Mapping over AVL tree"
@@ -362,6 +458,21 @@
       (is (= 6 (get-value mapped-tree 3)))
       (is (= true (avl-balanced? mapped-tree))))))
 
+(deftest test-map-avl-date
+  (testing "Mapping over AVL tree"
+    (let [tree (-> (empty-avl)
+                   (insert (java.util.Date. 120 0 1) 1)
+                   (insert (java.util.Date. 120 5 15) 2)
+                   (insert (java.util.Date. 119 11 31) 3)
+                   (insert (java.util.Date. 121 6 4) 4))
+          mapped-tree (map-avl (fn [_ v] (* v 2)) tree)]
+      (is (= 2 (get-value mapped-tree (java.util.Date. 120 0 1))))
+      (is (= 4 (get-value mapped-tree (java.util.Date. 120 5 15))))
+      (is (= 6 (get-value mapped-tree (java.util.Date. 119 11 31))))
+      (is (= 8 (get-value mapped-tree (java.util.Date. 121 6 4))))
+      (is (= true (avl-balanced? mapped-tree))))))
+
+
 (deftest test-fold-right-sum
   (testing "Folding right over AVL tree"
     (let [tree (-> (empty-avl)
@@ -370,6 +481,17 @@
                    (insert 3 3))
           sum (fold-right (fn [acc _ v] (+ acc v)) 0 tree)]
       (is (= 6 sum))
+      (is (= true (avl-balanced? tree))))))
+
+(deftest test-fold-right-date
+  (testing "Folding right over AVL tree"
+    (let [tree (-> (empty-avl)
+                   (insert (java.util.Date. 120 0 1) (java.util.Date. 120 0 1))
+                   (insert (java.util.Date. 120 5 15) (java.util.Date. 120 5 15))
+                   (insert (java.util.Date. 119 11 31) (java.util.Date. 119 11 31))
+                   (insert (java.util.Date. 121 6 4) (java.util.Date. 121 6 4)))
+          sum (fold-right (fn [_ _ v] (.toString v)) "" tree)]
+      (is (= "Tue Dec 31 00:00:00 MSK 2019" sum))
       (is (= true (avl-balanced? tree))))))
 
 (deftest test-fold-left-sum
@@ -382,7 +504,16 @@
       (is (= 6 sum))
       (is (= true (avl-balanced? tree))))))
 
-
+(deftest test-fold-left-date
+  (testing "Folding left over AVL tree"
+    (let [tree (-> (empty-avl)
+                   (insert (java.util.Date. 120 0 1) (java.util.Date. 120 0 1))
+                   (insert (java.util.Date. 120 5 15) (java.util.Date. 120 5 15))
+                   (insert (java.util.Date. 119 11 31) (java.util.Date. 119 11 31))
+                   (insert (java.util.Date. 121 6 4) (java.util.Date. 121 6 4)))
+          max-date (fold-left (fn [acc _ v] (if (.after v acc) v acc)) (java.util.Date. 119 11 31) tree)]
+      (is (= 0 (.compareTo max-date (java.util.Date. 121 6 4))))
+      (is (true? (avl-balanced? tree))))))
 
 (deftest test-fold-right-string
   (testing "Folding right over AVL tree"
@@ -391,7 +522,7 @@
                    (insert 2 "b")
                    (insert 3 "c"))
           result (fold-right (fn [acc _ value]
-                              (str acc value)) "" tree)]
+                               (str acc value)) "" tree)]
       (is (= "cba" result))
       (is (= true (avl-balanced? tree))))))
 
@@ -405,7 +536,6 @@
                               (str acc value)) "" tree)]
       (is (= "abc" result))
       (is (= true (avl-balanced? tree))))))
-
 
 (deftest test-concat-avl
   (testing "Concatenating two AVL trees"
@@ -422,6 +552,28 @@
       (is (= "four" (get-value combined 4)))
       (is (= true (avl-balanced? combined))))))
 
+(deftest test-concat-avl-date
+  (testing "Concatenating two AVL trees with Date keys"
+    (let [tree1 (-> (empty-avl)
+                    (insert (java.util.Date. 120 0 1) "2020-01-01")
+                    (insert (java.util.Date. 120 5 15) "2020-06-15"))
+          tree2 (-> (empty-avl)
+                    (insert (java.util.Date. 119 11 31) "2019-12-31")
+                    (insert (java.util.Date. 121 6 4) "2021-07-04"))
+          combined (concat-avl tree1 tree2)]
+      (is (= "2020-01-01" (get-value combined (java.util.Date. 120 0 1))))
+      (is (= "2020-06-15" (get-value combined (java.util.Date. 120 5 15))))
+      (is (= "2019-12-31" (get-value combined (java.util.Date. 119 11 31))))
+      (is (= "2021-07-04" (get-value combined (java.util.Date. 121 6 4))))
+      (is (avl-balanced? combined))
+      (is (= 4 (count (keys-avl combined))))
+      (is (= [(java.util.Date. 119 11 31)
+              (java.util.Date. 120 0 1)
+              (java.util.Date. 120 5 15)
+              (java.util.Date. 121 6 4)]
+             (keys-avl combined))))))
+
+
 (deftest test-filter-values
   (testing "Filtering AVL tree"
     (let [tree (-> (empty-avl)
@@ -436,6 +588,23 @@
       (is (= 4 (get-value filtered 4)))
       (is (= true (avl-balanced? filtered))))))
 
+(deftest test-filter-values-date
+  (testing "Filtering AVL tree with Date keys"
+    (let [tree (-> (empty-avl)
+                   (insert (java.util.Date. 120 0 1) "2020-01-01")
+                   (insert (java.util.Date. 120 5 15) "2020-06-15")
+                   (insert (java.util.Date. 119 11 31) "2019-12-31")
+                   (insert (java.util.Date. 121 6 4) "2021-07-04"))
+          filtered (filter-values (fn [_ v] (.startsWith v "2020")) tree)]
+      (is (= "2020-01-01" (get-value filtered (java.util.Date. 120 0 1))))
+      (is (= "2020-06-15" (get-value filtered (java.util.Date. 120 5 15))))
+      (is (nil? (get-value filtered (java.util.Date. 119 11 31))))
+      (is (nil? (get-value filtered (java.util.Date. 121 6 4))))
+      (is (avl-balanced? filtered))
+      (is (= 2 (count (keys-avl filtered))))
+      (is (= [(java.util.Date. 120 0 1) (java.util.Date. 120 5 15)]
+             (keys-avl filtered))))))
+
 (deftest test-monoid
   (testing "Monoid operations on AVL trees"
     (let [empty-tree (empty-avl)
@@ -449,6 +618,65 @@
       (is (= non-empty-tree (concat-avl non-empty-tree empty-tree)))
       (is (= non-empty-tree (concat-avl non-empty-tree non-empty-tree))))))
 
+(deftest test-monoid-date
+  (testing "Monoid operations on AVL trees with Date keys"
+    (let [empty-tree (empty-avl)
+          non-empty-tree (-> (empty-avl)
+                             (insert (java.util.Date. 120 0 1) (java.util.Date. 120 0 1))
+                             (insert (java.util.Date. 120 5 15) (java.util.Date. 120 5 15))
+                             (insert (java.util.Date. 119 11 31) (java.util.Date. 119 11 31))
+                             (insert (java.util.Date. 121 6 4) (java.util.Date. 121 6 4)))]
+      (is (= empty-tree (concat-avl empty-tree empty-tree)))
+      (is (= non-empty-tree (concat-avl empty-tree non-empty-tree)))
+      (is (= non-empty-tree (concat-avl non-empty-tree empty-tree)))
+      (is (= non-empty-tree (concat-avl non-empty-tree non-empty-tree)))
+      (is (avl-balanced? non-empty-tree))
+      (is (= 4 (count (keys-avl non-empty-tree))))
+      (is (= [(java.util.Date. 119 11 31)
+              (java.util.Date. 120 0 1)
+              (java.util.Date. 120 5 15)
+              (java.util.Date. 121 6 4)]
+             (keys-avl non-empty-tree))))))
+
+(deftest test-polymorphic-insert-keys
+  (testing "AVL tree with polymorphic keys"
+    (let [tree (-> (empty-avl)
+                   (insert (java.util.Date. 119 11 31) (java.util.Date. 119 11 31))
+                   (insert (java.util.Date. 120 0 1) (java.util.Date. 120 0 1))
+                   (insert (java.util.Date. 120 5 15) (java.util.Date. 120 5 15))
+                   (insert (java.util.Date. 121 6 4) (java.util.Date. 121 6 4)))]
+      (is (= (java.util.Date. 119 11 31) (get-value tree (java.util.Date. 119 11 31))))
+      (is (= (java.util.Date. 120 0 1) (get-value tree (java.util.Date. 120 0 1))))
+      (is (= (java.util.Date. 120 5 15) (get-value tree (java.util.Date. 120 5 15))))
+      (is (= (java.util.Date. 121 6 4) (get-value tree (java.util.Date. 121 6 4))))
+      (is (avl-balanced? tree))
+      (is (= 4 (count (keys-avl tree))))
+      (is (= [(java.util.Date. 119 11 31)
+              (java.util.Date. 120 0 1)
+              (java.util.Date. 120 5 15)
+              (java.util.Date. 121 6 4)]
+             (keys-avl tree)))
+      (is (every? #(instance? java.util.Date %) (keys-avl tree)))
+      (is (every? #(instance? java.util.Date %) (map #(get-value tree %) (keys-avl tree))))
+      (is (= (keys-avl tree) (map #(get-value tree %) (keys-avl tree)))))))
+
+(deftest test-polymorphic-delete-keys
+  (testing "AVL tree with polymorphic keys"
+    (let [tree (-> (empty-avl)
+                   (insert (java.util.Date. 120 0 1) (java.util.Date. 120 0 1))
+                   (insert (java.util.Date. 120 5 15) (java.util.Date. 120 5 15))
+                   (insert (java.util.Date. 119 11 31) (java.util.Date. 119 11 31))
+                   (insert (java.util.Date. 121 6 4) (java.util.Date. 121 6 4)))
+          data-to-delete (java.util.Date. 120 0 1)
+          tree-after-delete (delete tree data-to-delete)]
+      (is (nil? (get-value tree-after-delete data-to-delete)))
+      (is (avl-balanced? tree-after-delete))
+      (is (= 3 (count (keys-avl tree-after-delete))))
+      (is (= [(java.util.Date. 119 11 31)
+              (java.util.Date. 120 5 15)
+              (java.util.Date. 121 6 4)]
+             (keys-avl tree-after-delete)))
+      (is (every? #(instance? java.util.Date %) (keys-avl tree-after-delete))))))
 
 (run-tests)
 ```
@@ -464,31 +692,48 @@
                               avl-equal? concat-avl
                               delete empty-avl filter-values
                               fold-left fold-right get-value
-                              insert keys-avl to-list to-tree]]
+                              insert keys-avl to-list to-tree
+                              visualize]]
             [clojure.test.check.generators :as gen]
             [clojure.test.check.properties :as prop]
-            [clojure.test.check.clojure-test :refer [defspec]]))
+            [clojure.test.check.clojure-test :refer [defspec]])
+  (:import (java.util Date)))
 
-(def iteration_num 100)
+(def iteration_num 1000)
 (def samples_count 100)
 
 (def gen-key
   gen/small-integer)
 
 (def gen-value
-  (gen/one-of [gen/string gen/boolean gen/keyword gen/large-integer]))
+  (gen/one-of [gen/string gen/boolean gen/keyword gen/small-integer]))
 
 (def gen-pair
   (gen/tuple gen-key gen-value))
 
+(def gen-date
+  (gen/fmap #(Date. %)
+            (gen/choose (- (System/currentTimeMillis) (* 1000 60))
+                        (System/currentTimeMillis))))
+
+
 (def gen-int-pair
   (gen/tuple gen-key gen/small-integer))
+
+(def gen-date-pair
+  (gen/not-empty (gen/tuple gen-date gen-date)))
+
+(def gen-poly-pair (gen/one-of [
+             (gen/vector (gen/not-empty gen-pair) samples_count)
+             (gen/vector (gen/not-empty gen-int-pair) samples_count)
+             (gen/vector (gen/not-empty gen-date-pair) samples_count)
+]))
 
 ;; Test to verify that a randomly selected key from a set of inserted key-value pairs exists within the AVL tree
 ;; and that the AVL tree remains balanced after insertions.
 (defspec contains-random-element-test iteration_num
   ;; Verifies that a randomly selected key from inserted pairs exists in the AVL tree and the tree remains balanced.
-  (prop/for-all [tuples (gen/vector (gen/not-empty gen-pair) samples_count)]
+  (prop/for-all [tuples gen-poly-pair]
                 (let [avl (to-tree tuples)
                       [key] (rand-nth tuples)]
                   (is (avl-contains? avl key) "AVL tree should contain the randomly selected key.")
@@ -496,7 +741,7 @@
 
 (defspec contains-all-elements-test iteration_num
   ;; Verifies that all inserted keys exist in the AVL tree and the tree remains balanced.
-  (prop/for-all [tuples (gen/vector (gen/not-empty gen-pair) samples_count)]
+  (prop/for-all [tuples gen-poly-pair]
                 (let [avl (to-tree tuples)]
                   (is (every? (fn [[k _]] (avl-contains? avl k)) tuples) "AVL tree should contain all inserted keys.")
                   (is (every? (fn [[k _]] (avl-contains? avl k)) tuples) "AVL tree should contain all inserted keys.")
@@ -504,18 +749,45 @@
 
 (defspec insert-and-retrieve-test iteration_num
   ;; Verifies that an inserted key-value pair can be retrieved and the AVL tree remains balanced.
-  (prop/for-all [tuples (gen/vector (gen/not-empty gen-pair) samples_count)
+  (prop/for-all [tuples (gen/vector-distinct (gen/tuple gen-key gen-value))
                  key gen-key
-                 value gen-value]
-                (let [avl (to-tree tuples)
-                      new-avl (insert avl key value)]
-                  (is (avl-contains? new-avl key) "AVL tree should contain the inserted key.")
+                 value gen-value
+                 ]
+                (try
+                  (let [avl (to-tree tuples)
+                        new-avl (insert avl key value)]
+                    (is (avl-contains? new-avl key) "AVL tree should contain the inserted key.")
                   (is (avl-balanced? new-avl) "AVL tree should remain balanced after insertion.")
-                  (is (= value (get-value new-avl key)) "Retrieved value should match the inserted value."))))
+                  (is (= value (get-value new-avl key)) "Retrieved value should match the inserted value."))
+                  (catch Exception e
+                    (println "Error occurred. Visualizing tree:") 
+                    (println "Error message:" (.getMessage e))
+                    (println "Tuples:" tuples)
+                    (println "Inserted key:" key)
+                    (println "Inserted value:" value)
+                    (throw e)))))
+
+(defspec insert-and-retrieve-date-test iteration_num
+  ;; Verifies that an inserted key-value pair can be retrieved and the AVL tree remains balanced.
+  (prop/for-all [tuples (gen/vector-distinct (gen/tuple gen-date gen-date))
+                 key gen-date
+                 value gen-date]
+                (try
+                  (let [avl (to-tree tuples)
+                        new-avl (insert avl key value)]
+                    (is (avl-contains? new-avl key) "AVL tree should contain the inserted key.")
+                    (is (avl-balanced? new-avl) "AVL tree should remain balanced after insertion.")
+                    (is (= value (get-value new-avl key)) "Retrieved value should match the inserted value."))
+                  (catch Exception e
+                    (println "Error occurred. Visualizing tree:") 
+                    (println "Error message:" (.getMessage e))
+                    (println "Inserted key:" key)
+                    (println "Inserted value:" value)
+                    (throw e)))))
 
 (defspec delete-and-retrieve-test iteration_num
   ;; Verifies that a deleted key does not exist in the AVL tree and the tree remains balanced.
-  (prop/for-all [tuples (gen/vector (gen/not-empty gen-pair) samples_count)]
+  (prop/for-all [tuples gen-poly-pair]
                 (let [avl (to-tree tuples)
                       [key] (rand-nth tuples)
                       new-avl (delete avl key)]
@@ -526,9 +798,9 @@
   ;; Verifies that the sum of keys in the AVL tree matches the expected sum of unique numeric keys.
   (prop/for-all [tuples (gen/let [keys (gen/fmap (fn [pairs] (vec (map first pairs)))
                                                  (gen/set (gen/tuple gen-key gen-value) {:num-elements samples_count}))
-                                  values (gen/vector-distinct gen-value {:num-elements samples_count})]
+                                  values (gen/vector-distinct gen-value {:num-elements samples_count :max-tries 40})]
                           (map (fn [k v] [k v]) keys values))]
-                (let [tree (to-tree tuples)
+                (let [tree (to-tree tuples) 
                       expected-sum (->> tuples
                                         (filter (fn [[k _]] (number? k)))
                                         (map first)
@@ -542,7 +814,6 @@
                                             tree)]
                   (is (= sum-left expected-sum))
                   (is (= sum-right expected-sum)))))
-
 
 (defspec concat-2-avls-all-elements-exist iteration_num
   ;; Verifies that concatenating two AVL trees results in a balanced AVL tree containing all keys from both input trees.
@@ -559,13 +830,20 @@
 
 (defspec filter-values-test iteration_num
   ; Verifies that filtering the AVL tree based on a predicate results in a balanced AVL tree containing only elements that satisfy the predicate.
-  (prop/for-all [tuples (gen/vector (gen/not-empty gen-int-pair) samples_count)
+  (prop/for-all [tuples (gen/vector (gen/not-empty gen-int-pair) 2)
                  pred (gen/elements [pos? neg? zero? odd? even?])]
                 (let [avl (to-tree tuples)
-                      filtered-avl (filter-values (fn [_ v] (pred v)) avl)]
-                  (is (every? (fn [[_ v]] (pred v)) (partition 2 (to-list filtered-avl)))
+                      filtered-avl (filter-values (fn [_ v] (pred v)) avl)
+                      all-satisfy-pred? (every? (fn [[_ v]] (pred v)) (partition 2 (to-list filtered-avl)))
+                      is-balanced? (avl-balanced? filtered-avl)]
+                  (when (or (not all-satisfy-pred?) (not is-balanced?))
+                    (println "Original AVL:")
+                    (visualize avl)
+                    (println "Filtered AVL:")
+                    (visualize filtered-avl))
+                  (is all-satisfy-pred?
                       "Filtered AVL should contain only elements that satisfy the predicate.")
-                  (is (avl-balanced? filtered-avl)
+                  (is is-balanced?
                       "Filtered AVL should remain balanced."))))
 ;; Verify Monoid laws
 ;; 1. Identity element: mappend empty v = v

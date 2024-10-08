@@ -77,10 +77,11 @@
 
 ;; Delete a key from the AVL tree
 (defn delete [node key]
+  (let [cmp (compare key (:key node))]
   (cond
     (nil? node) nil
-    (< key (:key node)) (balance (assoc node :left (delete (:left node) key)))
-    (> key (:key node)) (balance (assoc node :right (delete (:right node) key)))
+    (neg? cmp) (balance (assoc node :left (delete (:left node) key)))
+    (pos? cmp) (balance (assoc node :right (delete (:right node) key)))
     :else
     (cond
       (nil? (:left node)) (:right node)
@@ -90,15 +91,16 @@
         (-> min-node
             (assoc :right (delete (:right node) (:key min-node)))
             (assoc :left (:left node)) ; Correct association
-            (balance))))))
+            (balance)))))))
 
 ;; Get the value for a given key
 (defn get-value [node key]
+  (let [cmp (compare key (:key node))]
   (cond
     (nil? node) nil
-    (< key (:key node)) (recur (:left node) key)
-    (> key (:key node)) (recur (:right node) key)
-    :else (:value node)))
+    (neg? cmp) (recur (:left node) key)
+    (pos? cmp) (recur (:right node) key)
+    :else (:value node))))
 
 ;; Check if the AVL tree contains a key
 (defn avl-contains? [node key]
